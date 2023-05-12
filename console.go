@@ -151,10 +151,12 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 
 // writeFields appends formatted key-value pairs to buf.
 func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer) {
+	var isOrderedField = make(map[string]bool)
 	var orderedFields = make([]string, 0, len(w.FieldsOrder))
 	for _, fieldName := range w.FieldsOrder {
 		if evt[fieldName] != nil {
 			orderedFields = append(orderedFields, fieldName)
+			isOrderedField[fieldName] = true
 		}
 	}
 
@@ -176,14 +178,7 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 			continue
 		}
 
-		var isOrdered bool
-		for _, ordered := range w.FieldsOrder {
-			if field == ordered {
-				isOrdered = true
-				break
-			}
-		}
-		if isOrdered {
+		if isOrderedField[field] {
 			continue
 		}
 
