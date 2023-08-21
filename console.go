@@ -63,6 +63,9 @@ type ConsoleWriter struct {
 	// PartsExclude defines parts to not display in output.
 	PartsExclude []string
 
+	// FieldsOrder defines the order of contextual fields in output.
+	FieldsOrder []string
+
 	// FieldsExclude defines contextual fields to not display in output.
 	FieldsExclude []string
 
@@ -148,6 +151,15 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 
 // writeFields appends formatted key-value pairs to buf.
 func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer) {
+	var isOrderedField = make(map[string]bool)
+	var orderedFields = make([]string, 0, len(w.FieldsOrder))
+	for _, fieldName := range w.FieldsOrder {
+		if evt[fieldName] != nil {
+			orderedFields = append(orderedFields, fieldName)
+			isOrderedField[fieldName] = true
+		}
+	}
+
 	var fields = make([]string, 0, len(evt))
 	for field := range evt {
 		var isExcluded bool
@@ -165,20 +177,27 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 		case LevelFieldName, TimestampFieldName, MessageFieldName, CallerFieldName:
 			continue
 		}
+
+		if isOrderedField[field] {
+			continue
+		}
+
 		fields = append(fields, field)
 	}
 	sort.Strings(fields)
 
+	totalFields := len(orderedFields) + len(fields)
+
 	// Write space only if something has already been written to the buffer, and if there are fields.
-	if buf.Len() > 0 && len(fields) > 0 {
+	if buf.Len() > 0 && totalFields > 0 {
 		buf.WriteByte(' ')
 	}
 
-	// Move the "error" field to the front
+	// Move the "error" field to the front of the orderedFields list
 	ei := sort.Search(len(fields), func(i int) bool { return fields[i] >= ErrorFieldName })
 	if ei < len(fields) && fields[ei] == ErrorFieldName {
 		fields[ei] = ""
-		fields = append([]string{ErrorFieldName}, fields...)
+		orderedFields = append([]string{ErrorFieldName}, orderedFields...)
 		var xfields = make([]string, 0, len(fields))
 		for _, field := range fields {
 			if field == "" { // Skip empty fields
@@ -189,7 +208,7 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 		fields = xfields
 	}
 
-	for i, field := range fields {
+	for i, field := range append(orderedFields, fields...) {
 		var fn Formatter
 		var fv Formatter
 
@@ -239,7 +258,7 @@ func (w ConsoleWriter) writeFields(evt map[string]interface{}, buf *bytes.Buffer
 			}
 		}
 
-		if i < len(fields)-1 { // Skip space for last field
+		if i < totalFields-1 { // Skip space for last field
 			buf.WriteByte(' ')
 		}
 	}
