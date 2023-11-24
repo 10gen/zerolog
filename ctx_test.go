@@ -2,12 +2,12 @@ package zerolog
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"testing"
 )
 
 func TestCtx(t *testing.T) {
-	log := New(ioutil.Discard)
+	log := New(io.Discard)
 	ctx := log.WithContext(context.Background())
 	log2 := Ctx(ctx)
 	if !log.IsEqualToLogger(*log2) {
@@ -36,13 +36,13 @@ func TestCtx(t *testing.T) {
 }
 
 func TestCtxDisabled(t *testing.T) {
-	dl := New(ioutil.Discard).Level(Disabled)
+	dl := New(io.Discard).Level(Disabled)
 	ctx := dl.WithContext(context.Background())
 	if ctx != context.Background() {
 		t.Error("WithContext stored a disabled logger")
 	}
 
-	l := New(ioutil.Discard).With().Str("foo", "bar").Logger()
+	l := New(io.Discard).With().Str("foo", "bar").Logger()
 	ctx = l.WithContext(ctx)
 	if !l.IsEqualToLogger(*Ctx(ctx)) {
 		t.Error("WithContext did not store logger")
