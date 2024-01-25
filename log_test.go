@@ -1039,3 +1039,22 @@ func TestUnmarshalTextLevel(t *testing.T) {
 		})
 	}
 }
+
+func TestFatalFunc(t *testing.T) {
+	out := &bytes.Buffer{}
+
+	var fatalCalled string
+	f := func(msg string) {
+		fatalCalled = msg
+	}
+	log := New(out).FatalFunc(f)
+	log.Fatal().Msg("foo")
+
+	if got, want := decodeIfBinaryToString(out.Bytes()), `{"level":"fatal","message":"foo"}`+"\n"; got != want {
+		t.Errorf("invalid log output:\ngot:  %v\nwant: %v", got, want)
+	}
+
+	if fatalCalled != "foo" {
+		t.Error("fatal func was not called as expected")
+	}
+}

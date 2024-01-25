@@ -76,6 +76,8 @@ type ConsoleWriter struct {
 	FormatErrFieldValue Formatter
 
 	FormatExtra func(map[string]interface{}, *bytes.Buffer) error
+
+	FormatPrepare func(map[string]interface{}) error
 }
 
 // NewConsoleWriter creates and initializes a new ConsoleWriter.
@@ -122,6 +124,13 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 	err = d.Decode(&evt)
 	if err != nil {
 		return n, fmt.Errorf("cannot decode event: %s", err)
+	}
+
+	if w.FormatPrepare != nil {
+		err = w.FormatPrepare(evt)
+		if err != nil {
+			return n, err
+		}
 	}
 
 	for _, p := range w.PartsOrder {
@@ -272,7 +281,7 @@ func (w ConsoleWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, 
 		}
 	case MessageFieldName:
 		if w.FormatMessage == nil {
-			f = consoleDefaultFormatMessage
+			f = consoleDefaultFormatMessage(w.NoColor, evt[LevelFieldName])
 		} else {
 			f = w.FormatMessage
 		}
@@ -310,8 +319,13 @@ func needsQuote(s string) bool {
 	return false
 }
 
-// colorize returns the string s wrapped in ANSI code c, unless disabled is true.
+// colorize returns the string s wrapped in ANSI code c, unless disabled is true or c is 0.
 func colorize(s interface{}, c int, disabled bool) string {
+	e := os.Getenv("NO_COLOR")
+	if e != "" || c == 0 {
+		disabled = true
+	}
+
 	if disabled {
 		return fmt.Sprintf("%s", s)
 	}
@@ -373,27 +387,16 @@ func consoleDefaultFormatLevel(noColor bool) Formatter {
 	return func(i interface{}) string {
 		var l string
 		if ll, ok := i.(string); ok {
-			switch ll {
-			case LevelTraceValue:
-				l = colorize("TRC", colorMagenta, noColor)
-			case LevelDebugValue:
-				l = colorize("DBG", colorYellow, noColor)
-			case LevelInfoValue:
-				l = colorize("INF", colorGreen, noColor)
-			case LevelWarnValue:
-				l = colorize("WRN", colorRed, noColor)
-			case LevelErrorValue:
-				l = colorize(colorize("ERR", colorRed, noColor), colorBold, noColor)
-			case LevelFatalValue:
-				l = colorize(colorize("FTL", colorRed, noColor), colorBold, noColor)
-			case LevelPanicValue:
-				l = colorize(colorize("PNC", colorRed, noColor), colorBold, noColor)
-			default:
-				l = colorize(ll, colorBold, noColor)
+			level, _ := ParseLevel(ll)
+			fl, ok := FormattedLevels[level]
+			if ok {
+				l = colorize(fl, LevelColors[level], noColor)
+			} else {
+				l = strings.ToUpper(ll)[0:3]
 			}
 		} else {
 			if i == nil {
-				l = colorize("???", colorBold, noColor)
+				l = "???"
 			} else {
 				l = strings.ToUpper(fmt.Sprintf("%s", i))[0:3]
 			}
@@ -420,11 +423,18 @@ func consoleDefaultFormatCaller(noColor bool) Formatter {
 	}
 }
 
-func consoleDefaultFormatMessage(i interface{}) string {
-	if i == nil {
-		return ""
+func consoleDefaultFormatMessage(noColor bool, level interface{}) Formatter {
+	return func(i interface{}) string {
+		if i == nil || i == "" {
+			return ""
+		}
+		switch level {
+		case LevelInfoValue, LevelWarnValue, LevelErrorValue, LevelFatalValue, LevelPanicValue:
+			return colorize(fmt.Sprintf("%s", i), colorBold, noColor)
+		default:
+			return fmt.Sprintf("%s", i)
+		}
 	}
-	return fmt.Sprintf("%s", i)
 }
 
 func consoleDefaultFormatFieldName(noColor bool) Formatter {
@@ -445,6 +455,6 @@ func consoleDefaultFormatErrFieldName(noColor bool) Formatter {
 
 func consoleDefaultFormatErrFieldValue(noColor bool) Formatter {
 	return func(i interface{}) string {
-		return colorize(fmt.Sprintf("%s", i), colorRed, noColor)
+		return colorize(colorize(fmt.Sprintf("%s", i), colorBold, noColor), colorRed, noColor)
 	}
 }
