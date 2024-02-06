@@ -34,7 +34,7 @@ func TestNewHandler(t *testing.T) {
 	lh := NewHandler(log)
 	h := lh(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		l := FromRequest(r)
-		if !reflect.DeepEqual(*l, log) {
+		if !log.IsEqualToLogger(*l) {
 			t.Fail()
 		}
 	}))

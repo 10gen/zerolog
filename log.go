@@ -2,106 +2,105 @@
 //
 // A global Logger can be use for simple logging:
 //
-//     import "github.com/rs/zerolog/log"
+//	import "github.com/rs/zerolog/log"
 //
-//     log.Info().Msg("hello world")
-//     // Output: {"time":1494567715,"level":"info","message":"hello world"}
+//	log.Info().Msg("hello world")
+//	// Output: {"time":1494567715,"level":"info","message":"hello world"}
 //
 // NOTE: To import the global logger, import the "log" subpackage "github.com/rs/zerolog/log".
 //
 // Fields can be added to log messages:
 //
-//     log.Info().Str("foo", "bar").Msg("hello world")
-//     // Output: {"time":1494567715,"level":"info","message":"hello world","foo":"bar"}
+//	log.Info().Str("foo", "bar").Msg("hello world")
+//	// Output: {"time":1494567715,"level":"info","message":"hello world","foo":"bar"}
 //
 // Create logger instance to manage different outputs:
 //
-//     logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
-//     logger.Info().
-//            Str("foo", "bar").
-//            Msg("hello world")
-//     // Output: {"time":1494567715,"level":"info","message":"hello world","foo":"bar"}
+//	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+//	logger.Info().
+//	       Str("foo", "bar").
+//	       Msg("hello world")
+//	// Output: {"time":1494567715,"level":"info","message":"hello world","foo":"bar"}
 //
 // Sub-loggers let you chain loggers with additional context:
 //
-//     sublogger := log.With().Str("component": "foo").Logger()
-//     sublogger.Info().Msg("hello world")
-//     // Output: {"time":1494567715,"level":"info","message":"hello world","component":"foo"}
+//	sublogger := log.With().Str("component": "foo").Logger()
+//	sublogger.Info().Msg("hello world")
+//	// Output: {"time":1494567715,"level":"info","message":"hello world","component":"foo"}
 //
 // Level logging
 //
-//     zerolog.SetGlobalLevel(zerolog.InfoLevel)
+//	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 //
-//     log.Debug().Msg("filtered out message")
-//     log.Info().Msg("routed message")
+//	log.Debug().Msg("filtered out message")
+//	log.Info().Msg("routed message")
 //
-//     if e := log.Debug(); e.Enabled() {
-//         // Compute log output only if enabled.
-//         value := compute()
-//         e.Str("foo": value).Msg("some debug message")
-//     }
-//     // Output: {"level":"info","time":1494567715,"routed message"}
+//	if e := log.Debug(); e.Enabled() {
+//	    // Compute log output only if enabled.
+//	    value := compute()
+//	    e.Str("foo": value).Msg("some debug message")
+//	}
+//	// Output: {"level":"info","time":1494567715,"routed message"}
 //
 // Customize automatic field names:
 //
-//     log.TimestampFieldName = "t"
-//     log.LevelFieldName = "p"
-//     log.MessageFieldName = "m"
+//	log.TimestampFieldName = "t"
+//	log.LevelFieldName = "p"
+//	log.MessageFieldName = "m"
 //
-//     log.Info().Msg("hello world")
-//     // Output: {"t":1494567715,"p":"info","m":"hello world"}
+//	log.Info().Msg("hello world")
+//	// Output: {"t":1494567715,"p":"info","m":"hello world"}
 //
 // Log with no level and message:
 //
-//     log.Log().Str("foo","bar").Msg("")
-//     // Output: {"time":1494567715,"foo":"bar"}
+//	log.Log().Str("foo","bar").Msg("")
+//	// Output: {"time":1494567715,"foo":"bar"}
 //
 // Add contextual fields to global Logger:
 //
-//     log.Logger = log.With().Str("foo", "bar").Logger()
+//	log.Logger = log.With().Str("foo", "bar").Logger()
 //
 // Sample logs:
 //
-//     sampled := log.Sample(&zerolog.BasicSampler{N: 10})
-//     sampled.Info().Msg("will be logged every 10 messages")
+//	sampled := log.Sample(&zerolog.BasicSampler{N: 10})
+//	sampled.Info().Msg("will be logged every 10 messages")
 //
 // Log with contextual hooks:
 //
-//     // Create the hook:
-//     type SeverityHook struct{}
+//	// Create the hook:
+//	type SeverityHook struct{}
 //
-//     func (h SeverityHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
-//          if level != zerolog.NoLevel {
-//              e.Str("severity", level.String())
-//          }
-//     }
+//	func (h SeverityHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
+//	     if level != zerolog.NoLevel {
+//	         e.Str("severity", level.String())
+//	     }
+//	}
 //
-//     // And use it:
-//     var h SeverityHook
-//     log := zerolog.New(os.Stdout).Hook(h)
-//     log.Warn().Msg("")
-//     // Output: {"level":"warn","severity":"warn"}
+//	// And use it:
+//	var h SeverityHook
+//	log := zerolog.New(os.Stdout).Hook(h)
+//	log.Warn().Msg("")
+//	// Output: {"level":"warn","severity":"warn"}
 //
 // Prehooks are also available. It's called just before "level" is added to a log.
 // `msg` always gets empty in `Run()`:
 //
-//     // Use as prehook:
-//     var h SeverityHook
-//     log := zerolog.New(os.Stdout).Prehook(h)
-//     log.Warn().Msg("")
-//     // Output: {"severity":"warn", "level":"warn"}
+//	// Use as prehook:
+//	var h SeverityHook
+//	log := zerolog.New(os.Stdout).Prehook(h)
+//	log.Warn().Msg("")
+//	// Output: {"severity":"warn", "level":"warn"}
 //
-//
-// Caveats
+// # Caveats
 //
 // There is no fields deduplication out-of-the-box.
 // Using the same key multiple times creates new key in final JSON each time.
 //
-//     logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
-//     logger.Info().
-//            Timestamp().
-//            Msg("dup")
-//     // Output: {"level":"info","time":1494567715,"time":1494567715,"message":"dup"}
+//	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+//	logger.Info().
+//	       Timestamp().
+//	       Msg("dup")
+//	// Output: {"level":"info","time":1494567715,"time":1494567715,"message":"dup"}
 //
 // In this case, many consumers will take the last value,
 // but this is not guaranteed; check yours if in doubt.
@@ -110,15 +109,15 @@
 //
 // Be careful when calling UpdateContext. It is not concurrency safe. Use the With method to create a child logger:
 //
-//     func handler(w http.ResponseWriter, r *http.Request) {
-//         // Create a child logger for concurrency safety
-//         logger := log.Logger.With().Logger()
+//	func handler(w http.ResponseWriter, r *http.Request) {
+//	    // Create a child logger for concurrency safety
+//	    logger := log.Logger.With().Logger()
 //
-//         // Add context fields, for example User-Agent from HTTP headers
-//         logger.UpdateContext(func(c zerolog.Context) zerolog.Context {
-//             ...
-//         })
-//     }
+//	    // Add context fields, for example User-Agent from HTTP headers
+//	    logger.UpdateContext(func(c zerolog.Context) zerolog.Context {
+//	        ...
+//	    })
+//	}
 package zerolog
 
 import (
@@ -128,6 +127,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -236,15 +236,18 @@ func (l Level) MarshalText() ([]byte, error) {
 // serialization to the Writer. If your Writer is not thread safe,
 // you may consider a sync wrapper.
 type Logger struct {
-	w        LevelWriter
-	level    Level
-	sampler  Sampler
-	context  []byte
-	hooks    []Hook
-	prehooks []Hook
-	stack    bool
-	ctx     context.Context
+	w         LevelWriter
+	level     Level
+	sampler   Sampler
+	context   []byte
+	hooks     []Hook
+	prehooks  []Hook
+	stack     bool
+	fatalFunc func(string)
+	ctx       context.Context
 }
+
+var defaultFatalFunc = func(msg string) { os.Exit(1) }
 
 // New creates a root logger with given output writer. If the output writer implements
 // the LevelWriter interface, the WriteLevel method will be called instead of the Write
@@ -261,7 +264,7 @@ func New(w io.Writer) Logger {
 	if !ok {
 		lw = LevelWriterAdapter{w}
 	}
-	return Logger{w: lw, level: TraceLevel}
+	return Logger{w: lw, level: TraceLevel, fatalFunc: defaultFatalFunc}
 }
 
 // Nop returns a disabled logger for which all operation are no-op.
@@ -352,6 +355,15 @@ func (l Logger) Prehook(h Hook) Logger {
 	return l
 }
 
+// FatalFunc returns a logger with the f FatalFunc. This func will be called
+// when a message is logged at the fatal level. By default, this calls
+// `os.Exit(1)`, but you can override this to do something else, particularly
+// for testing.
+func (l Logger) FatalFunc(f func(string)) Logger {
+	l.fatalFunc = f
+	return l
+}
+
 // Trace starts a new message with trace level.
 //
 // You must call Msg on the returned event in order to send the event.
@@ -404,7 +416,7 @@ func (l *Logger) Err(err error) *Event {
 //
 // You must call Msg on the returned event in order to send the event.
 func (l *Logger) Fatal() *Event {
-	return l.newEvent(FatalLevel, func(msg string) { os.Exit(1) })
+	return l.newEvent(FatalLevel, l.fatalFunc)
 }
 
 // Panic starts a new message with panic level. The panic() function
@@ -517,4 +529,23 @@ func (l *Logger) should(lvl Level) bool {
 		return l.sampler.Sample(lvl)
 	}
 	return true
+}
+
+// IsEqualToLogger returns true if the two loggers are equal. This exists for
+// use in tests.
+//
+// reflect.DeepEqual doesn't compare funcs in any useful way so we need to
+// remove them and do that comparison ourself.
+func (l Logger) IsEqualToLogger(log2 Logger) bool {
+	ff1 := l.fatalFunc
+	ff2 := log2.fatalFunc
+
+	l.fatalFunc = nil
+	log2.fatalFunc = nil
+
+	if !reflect.DeepEqual(l, log2) {
+		return false
+	}
+
+	return fmt.Sprintf("%p", ff1) == fmt.Sprintf("%p", ff2)
 }
