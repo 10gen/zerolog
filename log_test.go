@@ -1057,4 +1057,11 @@ func TestFatalFunc(t *testing.T) {
 	if fatalCalled != "foo" {
 		t.Error("fatal func was not called as expected")
 	}
+
+	child := log.With().Logger()
+	child.Fatal().Msg("bar")
+
+	if fatalCalled != "bar" {
+		t.Error("fatal func was not called by child logger as expected")
+	}
 }
