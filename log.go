@@ -418,7 +418,14 @@ func (l *Logger) Err(err error) *Event {
 //
 // You must call Msg on the returned event in order to send the event.
 func (l *Logger) Fatal() *Event {
-	return l.newEvent(FatalLevel, l.fatalFunc)
+	return l.newEvent(FatalLevel, func (msg string) {
+		if closer, ok := l.w.(io.Closer); ok {
+            // Close the writer to flush any buffered message. Otherwise the message
+            // will be lost as os.Exit() terminates the program immediately.
+            closer.Close()
+        }
+		l.fatalFunc(msg)
+	})
 }
 
 // Panic starts a new message with panic level. The panic() function
