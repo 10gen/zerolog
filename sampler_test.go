@@ -1,3 +1,4 @@
+//go:build !binary_log
 // +build !binary_log
 
 package zerolog
@@ -29,6 +30,13 @@ var samplers = []struct {
 		100, 20, 20,
 	},
 	{
+		"BasicSampler_0",
+		func() Sampler {
+			return &BasicSampler{N: 0}
+		},
+		100, 0, 0,
+	},
+	{
 		"RandomSampler",
 		func() Sampler {
 			return RandomSampler(5)
@@ -36,11 +44,25 @@ var samplers = []struct {
 		100, 10, 30,
 	},
 	{
+		"RandomSampler_0",
+		func() Sampler {
+			return RandomSampler(0)
+		},
+		100, 0, 0,
+	},
+	{
 		"BurstSampler",
 		func() Sampler {
 			return &BurstSampler{Burst: 20, Period: time.Second}
 		},
 		100, 20, 20,
+	},
+	{
+		"BurstSampler_0",
+		func() Sampler {
+			return &BurstSampler{Burst: 0, Period: time.Second}
+		},
+		100, 0, 0,
 	},
 	{
 		"BurstSamplerNext",
@@ -80,5 +102,36 @@ func BenchmarkSamplers(b *testing.B) {
 				}
 			})
 		})
+	}
+}
+
+func TestBurst(t *testing.T) {
+	sampler := &BurstSampler{Burst: 1, Period: time.Second}
+
+	t0 := time.Now()
+	now := t0
+	mockedTime := func() time.Time {
+		return now
+	}
+
+	TimestampFunc = mockedTime
+	defer func() { TimestampFunc = time.Now }()
+
+	scenario := []struct {
+		tm   time.Time
+		want bool
+	}{
+		{t0, true},
+		{t0.Add(time.Second - time.Nanosecond), false},
+		{t0.Add(time.Second), true},
+		{t0.Add(time.Second + time.Nanosecond), false},
+	}
+
+	for i, step := range scenario {
+		now = step.tm
+		got := sampler.Sample(NoLevel)
+		if got != step.want {
+			t.Errorf("step %d (t=%s): expect %t got %t", i, step.tm, step.want, got)
+		}
 	}
 }

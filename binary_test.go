@@ -1,3 +1,4 @@
+//go:build binary_log
 // +build binary_log
 
 package zerolog
@@ -7,19 +8,9 @@ import (
 	"errors"
 	"fmt"
 
-	//	"io/ioutil"
 	stdlog "log"
 	"time"
 )
-
-func ExampleBinaryNew() {
-	dst := bytes.Buffer{}
-	log := New(&dst)
-
-	log.Info().Msg("hello world")
-	fmt.Println(decodeIfBinaryToString(dst.Bytes()))
-	// Output: {"level":"info","message":"hello world"}
-}
 
 func ExampleLogger_With() {
 	dst := bytes.Buffer{}

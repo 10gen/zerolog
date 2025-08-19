@@ -24,9 +24,9 @@
 //
 // Sub-loggers let you chain loggers with additional context:
 //
-//	sublogger := log.With().Str("component": "foo").Logger()
-//	sublogger.Info().Msg("hello world")
-//	// Output: {"time":1494567715,"level":"info","message":"hello world","component":"foo"}
+//     sublogger := log.With().Str("component", "foo").Logger()
+//     sublogger.Info().Msg("hello world")
+//     // Output: {"time":1494567715,"level":"info","message":"hello world","component":"foo"}
 //
 // Level logging
 //
@@ -125,7 +125,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"strconv"
@@ -258,7 +257,7 @@ var defaultFatalFunc = func(msg string) { os.Exit(1) }
 // you may consider using sync wrapper.
 func New(w io.Writer) Logger {
 	if w == nil {
-		w = ioutil.Discard
+		w = io.Discard
 	}
 	lw, ok := w.(LevelWriter)
 	if !ok {
@@ -341,10 +340,13 @@ func (l Logger) Sample(s Sampler) Logger {
 }
 
 // Hook returns a logger with the h Hook.
-func (l Logger) Hook(h Hook) Logger {
-	newHooks := make([]Hook, len(l.hooks), len(l.hooks)+1)
+func (l Logger) Hook(hooks ...Hook) Logger {
+	if len(hooks) == 0 {
+		return l
+	}
+	newHooks := make([]Hook, len(l.hooks), len(l.hooks)+len(hooks))
 	copy(newHooks, l.hooks)
-	l.hooks = append(newHooks, h)
+	l.hooks = append(newHooks, hooks...)
 	return l
 }
 
@@ -481,6 +483,14 @@ func (l *Logger) Printf(format string, v ...interface{}) {
 	}
 }
 
+// Println sends a log event using debug level and no extra field.
+// Arguments are handled in the manner of fmt.Println.
+func (l *Logger) Println(v ...interface{}) {
+	if e := l.Debug(); e.Enabled() {
+		e.CallerSkipFrame(1).Msg(fmt.Sprintln(v...))
+	}
+}
+
 // Write implements the io.Writer interface. This is useful to set as a writer
 // for the standard library log.
 func (l Logger) Write(p []byte) (n int, err error) {
@@ -511,7 +521,7 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	if level != NoLevel && LevelFieldName != "" {
 		e.Str(LevelFieldName, LevelFieldMarshalFunc(level))
 	}
-	if l.context != nil && len(l.context) > 1 {
+	if len(l.context) > 1 {
 		e.buf = enc.AppendObjectData(e.buf, l.context)
 	}
 	if l.stack {
@@ -522,6 +532,9 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 
 // should returns true if the log event should be logged.
 func (l *Logger) should(lvl Level) bool {
+	if l.w == nil {
+		return false
+	}
 	if lvl < l.level || lvl < GlobalLevel() {
 		return false
 	}
